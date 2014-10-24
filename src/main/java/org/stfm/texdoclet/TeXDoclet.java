@@ -274,8 +274,10 @@ public class TeXDoclet extends Doclet {
 			+ "</title></head><body><object data=\""
 			+ REPLACE_OUT
 			+ "\" type=\"application/pdf\" class=\"pdfDoc\"></object></body></html>";
+    private static boolean classonlymin;
+    private static boolean packagetoc = true;
 
-	public static void main(String args[]) {
+    public static void main(String args[]) {
 
 		// call javadoc
 
@@ -387,6 +389,10 @@ public class TeXDoclet extends Doclet {
 			return 1;
 		} else if (option.equals("-classonly")) {
             return 1;
+        } else if (option.equals("-classonlymin")) {
+            return 1;
+        } else if (option.equals("-nopackagetoc")) {
+            return 1;
         }
 		System.out.println("unknown TeXDoclet option " + option);
 
@@ -493,6 +499,10 @@ public class TeXDoclet extends Doclet {
 				createPdf = true;
 			} else if (args[i][0].equals("-classonly")) {
                 classonly =  true;
+            } else if (args[i][0].equals("-classonlymin")) {
+                classonlymin =  true;
+            } else if (args[i][0].equals("-nopackagetoc")) {
+                packagetoc = false;
             }
 
 			if (sectionLevelMax != null
@@ -630,43 +640,45 @@ public class TeXDoclet extends Doclet {
 
 		Enumeration<Package> e = map.elements();
 		while (e.hasMoreElements()) {
-			final Package pkg = e.nextElement();
+            final Package pkg = e.nextElement();
             curPackge = pkg.pkgDoc;
 
-			// os.println( "\\newpage" );
+            // os.println( "\\newpage" );
 
-			addFile(os, packageFile, false);
+            addFile(os, packageFile, false);
 
-			os.println("\\" + sectionLevels[0] + "{Package "
-					+ HTMLtoLaTeXBackEnd.fixText(pkg.pkg) + "}{");
+            os.println("\\" + sectionLevels[0] + "{Package "
+                    + HTMLtoLaTeXBackEnd.fixText(pkg.pkg) + "}{");
 
-			os.print("\\label{" + refName(makeRefKey(pkg.pkg)) + "}");
-			if (hyperref) {
-				os.println("\\hypertarget{" + refName(makeRefKey(pkg.pkg))
-						+ "}{}");
-			}
+            os.print("\\label{" + refName(makeRefKey(pkg.pkg)) + "}");
+            if (hyperref) {
+                os.println("\\hypertarget{" + refName(makeRefKey(pkg.pkg))
+                        + "}{}");
+            }
 
-			// os.println(
-			// "\\markboth{\\protect\\packagename}{\\protect\\packagename}" );
-			// os.println(
-			// "\\markboth{\\protect\\packagename \\hspace{.02in} -- \\protect\\classname}{\\protect\\packagename \\hspace{.02in} -- \\protect\\classname}"
-			// );
+            // os.println(
+            // "\\markboth{\\protect\\packagename}{\\protect\\packagename}" );
+            // os.println(
+            // "\\markboth{\\protect\\packagename \\hspace{.02in} -- \\protect\\classname}{\\protect\\packagename \\hspace{.02in} -- \\protect\\classname}"
+            // );
 
-			if (ITALIC.indexOf("textit") != -1) {
-				os.println("\\hskip -.05in");
-			}
-			os.println("\\hbox to \\hsize{" + ITALIC
-					+ " Package Contents\\hfil Page}}");
-			if (useHr) {
-				os.println("\\rule{\\hsize}{.7mm}");
-			}
-			tocForClasses("Interfaces", pkg.interfaces);
-			tocForClasses("Classes", pkg.classes);
-			os.println("\\vskip .1in");
-			if (useHr) {
-				os.println("\\rule{\\hsize}{.7mm}");
-			}
-			os.println("\\vskip .1in");
+            if (packagetoc) {
+                if (ITALIC.indexOf("textit") != -1) {
+                    os.println("\\hskip -.05in");
+                }
+                os.println("\\hbox to \\hsize{" + ITALIC
+                        + " Package Contents\\hfil Page}}");
+                if (useHr) {
+                    os.println("\\rule{\\hsize}{.7mm}");
+                }
+                tocForClasses("Interfaces", pkg.interfaces);
+                tocForClasses("Classes", pkg.classes);
+                os.println("\\vskip .1in");
+                if (useHr) {
+                    os.println("\\rule{\\hsize}{.7mm}");
+                }
+                os.println("\\vskip .1in");
+            }
 
 			// The path relative to which <IMG> will be resolved.
 			packageDir = findPackageDir(pkg.pkg, root);
@@ -794,7 +806,7 @@ public class TeXDoclet extends Doclet {
 		} else if (sectionLevelMax.equals(SUBSECTION_LEVEL)) {
 			sectionLevels[0] = "subsection";
 			sectionLevels[1] = "subsubsection";
-			sectionLevels[2] = "subsubsection";
+			sectionLevels[2] = "paragraph";
 		}
 	}
 
@@ -1102,177 +1114,179 @@ public class TeXDoclet extends Doclet {
 						+ refName(makeRefKey(cd.qualifiedName())) + "}{}");
 			}
 
-			os.println("\\vskip .1in ");
-			if (cd.inlineTags().length > 0) {
-				printTags(cd.inlineTags());
-				os.println("\\vskip .1in ");
-			}
+            os.println("\\vskip .1in ");
+            if (cd.inlineTags().length > 0) {
+                printTags(cd.inlineTags());
+                os.println("\\vskip .1in ");
+            }
 
-			SeeTag[] sees = cd.seeTags();
-			if (sees.length > 0) {
-				os.println("\\" + sectionLevels[2] + "{See also}{}\n");
-				os.println("  \\begin{list}{-- }{\\setlength{\\itemsep}{0cm}\\setlength{\\parsep}{0cm}}");
-				for (int j = 0; j < sees.length; ++j) {
-					os.print("\\item{ ");
-					printSeesTag(sees[j], cd.containingPackage());
-					os.println("} ");
-				}
-				os.println("  \\end{list}");
-			}
-
-			os.println("\\" + sectionLevels[2] + "{Declaration}{");
-
-			os.print("\\small " + HTMLtoLaTeXBackEnd.fixText(cd.modifiers())
-					+ " ");
-			if (cd.isInterface() == false) {
-				os.print("class ");
-			}
-			os.println(HTMLtoLaTeXBackEnd.fixText(cd.name()));
-			ClassDoc sc = cd.superclass();
-			if (sc != null) {
-				os.println("\\\\ " + BOLD + " extends} "
-						+ HTMLtoLaTeXBackEnd.fixText(sc.qualifiedName()));
-				printRef(sc.containingPackage(), sc.name(), null);
-			}
-
-			ClassDoc intf[] = cd.interfaces();
-			if (intf.length > 0) {
-				if (cd.isInterface() == false) {
-					os.println("\\\\ " + BOLD + " implements} ");
-				} else {
-					os.println("\\\\ " + BOLD + " extends} ");
-				}
-				for (int j = 0; j < intf.length; ++j) {
-					ClassDoc in = intf[j];
-					String nm;
-					if (in.containingPackage().name()
-							.equals(cd.containingPackage().name())) {
-						nm = in.name();
-					} else {
-						nm = in.qualifiedName();
-					}
-					if (j > 0) {
-						os.print(", ");
-					}
-					os.print(HTMLtoLaTeXBackEnd.fixText(nm));
-				}
-			}
-			os.println("}");
-			ExecutableMemberDoc[] mems;
-			FieldDoc[] flds;
-
-			Tag[] verTags = cd.tags("version");
-			if (versioninfo && verTags.length > 0) {
-				os.println("\\" + sectionLevels[2] + "{Version}{"
-						+ HTMLtoLaTeXBackEnd.fixText(verTags[0].text()) + "}");
-			}
-
-			String subclasses = "";
-			for (int index = 0; index < theroot.classes().length; index++) {
-				ClassDoc cls = theroot.classes()[index];
-				if (cls.subclassOf(cd) && !cls.equals(cd)) {
-					if (!subclasses.equals("")) {
-						subclasses += ", ";
-					}
-					subclasses += HTMLtoLaTeXBackEnd.fixText(cls.name());
-					subclasses += "\\small{\\refdefined{"
-							+ refName(makeRefKey(cls.qualifiedName())) + "}}";
-				}
-			}
-
-			if (cd.isInterface()) {
-				if (!subclasses.equals("")) {
-					os.println("\\" + sectionLevels[2]
-							+ "{All known subinterfaces}{" + subclasses + "}");
-				}
-			} else {
-				if (!subclasses.equals("")) {
-					os.println("\\" + sectionLevels[2]
-							+ "{All known subclasses}{" + subclasses + "}");
-				}
-			}
-
-			String subintf = "";
-			String implclasses = "";
-			if (cd.isInterface()) {
-				for (int index = 0; index < theroot.classes().length; index++) {
-					ClassDoc cls = theroot.classes()[index];
-					boolean impls = false;
-					for (int w = 0; w < cls.interfaces().length; w++) {
-						ClassDoc intfDoc = cls.interfaces()[w];
-						if (intfDoc.equals(cd)) {
-							impls = true;
-						}
-					}
-					if (impls) {
-						if (cls.isInterface()) {
-							if (!subintf.equals("")) {
-								subintf += ", ";
-							}
-							subintf += cls.name();
-							subintf += "\\small{\\refdefined{"
-									+ refName(makeRefKey(cls.qualifiedName()))
-									+ "}}";
-						} else {
-							if (!implclasses.equals("")) {
-								implclasses += ", ";
-							}
-							implclasses += cls.name();
-							implclasses += "\\small{\\refdefined{"
-									+ refName(makeRefKey(cls.qualifiedName()))
-									+ "}}";
-						}
-					}
-				}
-
-				if (!implclasses.equals("")) {
-					os.println("\\" + sectionLevels[2]
-							+ "{All classes known to implement interface}{"
-							+ implclasses + "}");
-				}
-			}
-
-			if (summaries) {
-				flds = cd.fields();
-				if (flds.length > 0) {
-					printFieldSummary(flds, "Field summary");
-				}
-
-				if (useConstructorSummary) {
-					mems = cd.constructors();
-					if (mems.length > 0) {
-						printMethodSummary(mems, "Constructor summary");
-					}
-				}
-
-				if (useFieldSummary) {
-					mems = cd.methods();
-					if (mems.length > 0) {
-						printMethodSummary(mems, "Method summary");
-					}
-				}
-			}
-
-            if (!classonly) {
-                flds = cd.serializableFields();
-                if (flds.length > 0 && serial) {
-                    printFields(cd, flds, "Serializable Fields", false);
+            if (!classonlymin) {
+                SeeTag[] sees = cd.seeTags();
+                if (sees.length > 0) {
+                    os.println("\\" + sectionLevels[2] + "{See also}{}\n");
+                    os.println("  \\begin{list}{-- }{\\setlength{\\itemsep}{0cm}\\setlength{\\parsep}{0cm}}");
+                    for (int j = 0; j < sees.length; ++j) {
+                        os.print("\\item{ ");
+                        printSeesTag(sees[j], cd.containingPackage());
+                        os.println("} ");
+                    }
+                    os.println("  \\end{list}");
                 }
-                flds = cd.fields();
-                if (flds.length > 0) {
-                    printFields(cd, flds, "Fields", true);
+
+                os.println("\\" + sectionLevels[2] + "{Declaration}{");
+
+                os.print("\\small " + HTMLtoLaTeXBackEnd.fixText(cd.modifiers())
+                        + " ");
+                if (cd.isInterface() == false) {
+                    os.print("class ");
                 }
-                mems = cd.constructors();
-                if (mems.length > 0) {
-                    os.println("\\" + sectionLevels[2] + "{Constructors}{");
-                    printMembers(cd, mems, true);
-                    os.println("}");
+                os.println(HTMLtoLaTeXBackEnd.fixText(cd.name()));
+                ClassDoc sc = cd.superclass();
+                if (sc != null) {
+                    os.println("\\\\ " + BOLD + " extends} "
+                            + HTMLtoLaTeXBackEnd.fixText(sc.qualifiedName()));
+                    printRef(sc.containingPackage(), sc.name(), null);
                 }
-                mems = cd.methods();
-                if (mems.length > 0) {
-                    os.println("\\" + sectionLevels[2] + "{Methods}{");
-                    printMembers(cd, mems, true);
-                    os.println("}");
+
+                ClassDoc intf[] = cd.interfaces();
+                if (intf.length > 0) {
+                    if (cd.isInterface() == false) {
+                        os.println("\\\\ " + BOLD + " implements} ");
+                    } else {
+                        os.println("\\\\ " + BOLD + " extends} ");
+                    }
+                    for (int j = 0; j < intf.length; ++j) {
+                        ClassDoc in = intf[j];
+                        String nm;
+                        if (in.containingPackage().name()
+                                .equals(cd.containingPackage().name())) {
+                            nm = in.name();
+                        } else {
+                            nm = in.qualifiedName();
+                        }
+                        if (j > 0) {
+                            os.print(", ");
+                        }
+                        os.print(HTMLtoLaTeXBackEnd.fixText(nm));
+                    }
+                }
+                os.println("}");
+                ExecutableMemberDoc[] mems;
+                FieldDoc[] flds;
+
+                Tag[] verTags = cd.tags("version");
+                if (versioninfo && verTags.length > 0) {
+                    os.println("\\" + sectionLevels[2] + "{Version}{"
+                            + HTMLtoLaTeXBackEnd.fixText(verTags[0].text()) + "}");
+                }
+
+                String subclasses = "";
+                for (int index = 0; index < theroot.classes().length; index++) {
+                    ClassDoc cls = theroot.classes()[index];
+                    if (cls.subclassOf(cd) && !cls.equals(cd)) {
+                        if (!subclasses.equals("")) {
+                            subclasses += ", ";
+                        }
+                        subclasses += HTMLtoLaTeXBackEnd.fixText(cls.name());
+                        subclasses += "\\small{\\refdefined{"
+                                + refName(makeRefKey(cls.qualifiedName())) + "}}";
+                    }
+                }
+
+                if (cd.isInterface()) {
+                    if (!subclasses.equals("")) {
+                        os.println("\\" + sectionLevels[2]
+                                + "{All known subinterfaces}{" + subclasses + "}");
+                    }
+                } else {
+                    if (!subclasses.equals("")) {
+                        os.println("\\" + sectionLevels[2]
+                                + "{All known subclasses}{" + subclasses + "}");
+                    }
+                }
+
+                String subintf = "";
+                String implclasses = "";
+                if (cd.isInterface()) {
+                    for (int index = 0; index < theroot.classes().length; index++) {
+                        ClassDoc cls = theroot.classes()[index];
+                        boolean impls = false;
+                        for (int w = 0; w < cls.interfaces().length; w++) {
+                            ClassDoc intfDoc = cls.interfaces()[w];
+                            if (intfDoc.equals(cd)) {
+                                impls = true;
+                            }
+                        }
+                        if (impls) {
+                            if (cls.isInterface()) {
+                                if (!subintf.equals("")) {
+                                    subintf += ", ";
+                                }
+                                subintf += cls.name();
+                                subintf += "\\small{\\refdefined{"
+                                        + refName(makeRefKey(cls.qualifiedName()))
+                                        + "}}";
+                            } else {
+                                if (!implclasses.equals("")) {
+                                    implclasses += ", ";
+                                }
+                                implclasses += cls.name();
+                                implclasses += "\\small{\\refdefined{"
+                                        + refName(makeRefKey(cls.qualifiedName()))
+                                        + "}}";
+                            }
+                        }
+                    }
+
+                    if (!implclasses.equals("")) {
+                        os.println("\\" + sectionLevels[2]
+                                + "{All classes known to implement interface}{"
+                                + implclasses + "}");
+                    }
+                }
+
+                if (summaries) {
+                    flds = cd.fields();
+                    if (flds.length > 0) {
+                        printFieldSummary(flds, "Field summary");
+                    }
+
+                    if (useConstructorSummary) {
+                        mems = cd.constructors();
+                        if (mems.length > 0) {
+                            printMethodSummary(mems, "Constructor summary");
+                        }
+                    }
+
+                    if (useFieldSummary) {
+                        mems = cd.methods();
+                        if (mems.length > 0) {
+                            printMethodSummary(mems, "Method summary");
+                        }
+                    }
+                }
+
+                if (!classonly) {
+                    flds = cd.serializableFields();
+                    if (flds.length > 0 && serial) {
+                        printFields(cd, flds, "Serializable Fields", false);
+                    }
+                    flds = cd.fields();
+                    if (flds.length > 0) {
+                        printFields(cd, flds, "Fields", true);
+                    }
+                    mems = cd.constructors();
+                    if (mems.length > 0) {
+                        os.println("\\" + sectionLevels[2] + "{Constructors}{");
+                        printMembers(cd, mems, true);
+                        os.println("}");
+                    }
+                    mems = cd.methods();
+                    if (mems.length > 0) {
+                        os.println("\\" + sectionLevels[2] + "{Methods}{");
+                        printMembers(cd, mems, true);
+                        os.println("}");
+                    }
                 }
             }
 
