@@ -229,6 +229,7 @@ public class TeXDoclet extends Doclet {
 	static String packageFile = "docpackage.tex";
 	static String preambleFile = "docinit.tex";
 	static File packageDir = null;
+    static PackageDoc curPackge = null;
 	static Hashtable<String, String> appendencies = new Hashtable<String, String>();
 	static Hashtable<String, Hashtable<?, ?>> refs = new Hashtable<String, Hashtable<?, ?>>();
 	static Hashtable<String, Hashtable<?, ?>> externalrefs = new Hashtable<String, Hashtable<?, ?>>();
@@ -630,6 +631,7 @@ public class TeXDoclet extends Doclet {
 		Enumeration<Package> e = map.elements();
 		while (e.hasMoreElements()) {
 			final Package pkg = e.nextElement();
+            curPackge = pkg.pkgDoc;
 
 			// os.println( "\\newpage" );
 
@@ -2015,7 +2017,11 @@ public class TeXDoclet extends Doclet {
 						htmlstr += "\\hyperlink{"
 								+ refName(makeRefKey(linkstr)) + "}{";
 					}
-					htmlstr += HTMLtoLaTeXBackEnd.fixText(link.label());
+                    if (link.label() == null || link.label().length() == 0) {
+                        htmlstr += packageRelativIdentifier(curPackge, linkstr);
+                    } else {
+                        htmlstr += HTMLtoLaTeXBackEnd.fixText(link.label());
+                    }
 					if (hyperref) {
 						htmlstr += "}";
 					}
