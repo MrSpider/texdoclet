@@ -233,6 +233,7 @@ public class TeXDoclet extends Doclet {
 	static Hashtable<String, Hashtable<?, ?>> refs = new Hashtable<String, Hashtable<?, ?>>();
 	static Hashtable<String, Hashtable<?, ?>> externalrefs = new Hashtable<String, Hashtable<?, ?>>();
 
+    static boolean classonly = false;
 	static boolean includeTexOutputInOtherTexFile = false;
 	static String sectionLevelMax = null;
 	static String[] sectionLevels = new String[3];
@@ -383,7 +384,9 @@ public class TeXDoclet extends Doclet {
 			return 2;
 		} else if (option.equals("-createpdf")) {
 			return 1;
-		}
+		} else if (option.equals("-classonly")) {
+            return 1;
+        }
 		System.out.println("unknown TeXDoclet option " + option);
 
 		// return Standard.optionLength(option);
@@ -487,7 +490,9 @@ public class TeXDoclet extends Doclet {
 				tableWidthScale = Double.parseDouble(args[i][1]);
 			} else if (args[i][0].equals("-createpdf")) {
 				createPdf = true;
-			}
+			} else if (args[i][0].equals("-classonly")) {
+                classonly =  true;
+            }
 
 			if (sectionLevelMax != null
 					&& !sectionLevelMax.equals(CHAPTER_LEVEL)
@@ -1246,28 +1251,30 @@ public class TeXDoclet extends Doclet {
 				}
 			}
 
-			flds = cd.serializableFields();
-			if (flds.length > 0 && serial) {
-				printFields(cd, flds, "Serializable Fields", false);
-			}
-			flds = cd.fields();
-			if (flds.length > 0) {
-				printFields(cd, flds, "Fields", true);
-			}
-			mems = cd.constructors();
-			if (mems.length > 0) {
-				os.println("\\" + sectionLevels[2] + "{Constructors}{");
-				printMembers(cd, mems, true);
-				os.println("}");
-			}
-			mems = cd.methods();
-			if (mems.length > 0) {
-				os.println("\\" + sectionLevels[2] + "{Methods}{");
-				printMembers(cd, mems, true);
-				os.println("}");
-			}
+            if (!classonly) {
+                flds = cd.serializableFields();
+                if (flds.length > 0 && serial) {
+                    printFields(cd, flds, "Serializable Fields", false);
+                }
+                flds = cd.fields();
+                if (flds.length > 0) {
+                    printFields(cd, flds, "Fields", true);
+                }
+                mems = cd.constructors();
+                if (mems.length > 0) {
+                    os.println("\\" + sectionLevels[2] + "{Constructors}{");
+                    printMembers(cd, mems, true);
+                    os.println("}");
+                }
+                mems = cd.methods();
+                if (mems.length > 0) {
+                    os.println("\\" + sectionLevels[2] + "{Methods}{");
+                    printMembers(cd, mems, true);
+                    os.println("}");
+                }
+            }
 
-			if (inherited == true) {
+			if (inherited) {
 
 				if (!cd.isInterface()) {
 
